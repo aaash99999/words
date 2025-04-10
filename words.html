@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Word Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    #results {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Word Generator from Letters</h1>
+
+  <form id="anagramForm">
+    <label for="wordInput">Enter a word:</label>
+    <input type="text" id="wordInput" name="wordInput" required>
+    <button type="submit">Submit</button>
+  </form>
+
+  <div id="results"></div>
+
+  <script>
+    let cachedWordList = null;
+
+    // Load word list from words.txt once and cache it
+    async function loadWordList() {
+      if (cachedWordList !== null) return cachedWordList;
+
+      try {
+        const response = await fetch('words.txt');
+        if (!response.ok) throw new Error('Failed to load word list');
+        const text = await response.text();
+        cachedWordList = text
+          .split(/\r?\n/)
+          .map(word => word.trim().toLowerCase())
+          .filter(word => word.length > 0);
+        return cachedWordList;
+      } catch (error) {
+        console.error(error);
+        alert("Could not load word list.");
+        return [];
+      }
+    }
+
+    // Get letter counts
+    function getLetterCount(word) {
+      const count = {};
+      for (const char of word) {
+        count[char] = (count[char] || 0) + 1;
+      }
+      return count;
+    }
+
+    // Check if word can be made from input letters
+    function canBuildWord(inputLetters, word) {
+      const inputCount = getLetterCount(inputLetters);
+      const wordCount = getLetterCount(word);
+      for (const char in wordCount) {
+        if (!inputCount[char] || wordCount[char] > inputCount[char]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // Handle form submission
+    document.getElementById('anagramForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+
+      const input = document.getElementById('wordInput').value.trim().toLowerCase();
+      const resultsDiv = document.getElementById('results');
+
+      if (input.length === 0) {
+        resultsDiv.innerHTML = "<strong>Please enter a word.</strong>";
+        return;
+      }
+
+      const wordList = await loadWordList();
+
+      if (wordList.length === 0) {
+        resultsDiv.innerHTML = "<strong>Word list not available.</strong>";
+        return;
+      }
+
+      const results = wordList.filter(word =>
+        word.length > 2 &&
+        word !== input &&
+        canBuildWord(input, word)
+      );
+
+      if (results.length > 0) {
+        resultsDiv.innerHTML = `<strong>Words found:</strong> ${results.join(', ')}`;
+      } else {
+        resultsDiv.innerHTML = '<strong>No words found.</strong>';
+      }
+    });
+  </script>
+
+</body>
+</html>
+
